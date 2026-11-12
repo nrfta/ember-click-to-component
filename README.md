@@ -21,8 +21,14 @@ the attributes nor the runtime.
 
 ## Compatibility
 
-- Ember.js v4.12 or above
-- Embroider or ember-auto-import v2
+- Ember 5 or above.
+- Embroider with Vite (`@embroider/vite`) only. Classic (non-Embroider)
+  builds are not supported.
+- Templates in `.hbs` files and in `.gjs`/`.gts` (`<template>`) files.
+- The template transform runs inside
+  `babel-plugin-ember-template-compilation` (verified with 4.0.1), which
+  supplies the file path (`env.filename`) and template text (`env.contents`)
+  it relies on.
 
 ## Installation
 
@@ -91,19 +97,38 @@ yourself wins over the mode.
 ### 2. Start the runtime (development only)
 
 In `app/app.ts` (or `app/app.js`), start the runtime behind
-`macroCondition(isDevelopingApp())` so production builds drop it:
+`macroCondition(isDevelopingApp() && !isTesting())` so production builds drop
+it and test runs (where `isDevelopingApp()` is also true) do not start it:
 
 ```ts
-import { isDevelopingApp, macroCondition } from '@embroider/macros';
+import { isDevelopingApp, isTesting, macroCondition } from '@embroider/macros';
 import { startClickToComponent } from 'ember-click-to-component';
 
-if (macroCondition(isDevelopingApp())) {
+if (macroCondition(isDevelopingApp() && !isTesting())) {
   startClickToComponent();
 }
 ```
 
 `startClickToComponent()` returns a function that removes its listeners and
-styles again.
+styles again. Calling it again replaces the running instance.
+
+### Test runs
+
+The template transform cannot tell a Vite test run from development: a Vite
+app's tests are built with `vite build --mode development`, so with the setup
+above the `data-ctc-source` attributes (with absolute file paths) are present
+in test runs and can show up in DOM snapshots or `innerHTML` assertions. To
+keep them out, register the transform only when the build is not a test build,
+using whatever signal your Vite config has. For example, build tests with
+their own mode (`vite build --mode test`) and pass it on in
+`vite.config.mjs`:
+
+```js
+process.env.EMBER_ENV ??=
+  mode === 'production' || mode === 'test' ? mode : 'development';
+```
+
+so that `isDevelopment` in the Babel config above is false for test builds.
 
 ## Usage
 

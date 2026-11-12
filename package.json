@@ -11,7 +11,7 @@
     "start": "concurrently 'pnpm:start:*' --restart-after 5000 --prefixColors auto",
     "start:addon": "pnpm --filter ember-click-to-component start --no-watch.clearScreen",
     "start:test-app": "pnpm --filter test-app start",
-    "test": "pnpm --filter '*' test",
+    "test": "pnpm build && pnpm --filter ember-click-to-component test && pnpm --filter test-app test && pnpm --filter test-app check:prod",
     "test:ember": "pnpm --filter '*' test:ember"
   },
   "packageManager": "pnpm@10.0.0",

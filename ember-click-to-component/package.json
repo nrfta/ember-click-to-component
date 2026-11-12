@@ -46,7 +46,7 @@
     "lint:types": "glint",
     "prepack": "rollup --config",
     "start": "rollup --config --watch",
-    "test": "echo 'A v2 addon does not have tests, run tests in test-app'",
+    "test": "vitest run",
     "test:unit": "vitest run"
   },
   "dependencies": {
