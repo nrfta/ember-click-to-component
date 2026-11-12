@@ -33,7 +33,15 @@ function templateOffset(filename, contents) {
   } catch {
     return null;
   }
-  const index = source.indexOf(contents);
+  let index = source.indexOf(contents);
+  if (index === -1 && source.includes('\r\n')) {
+    // JS template literals normalise CRLF to LF, so a template from a CRLF
+    // file arrives LF-only. Search the LF-normalised file instead; lines are
+    // counted by LF and the stripped CRs sat only at line ends, so line and
+    // column stay correct.
+    source = source.replace(/\r\n/g, '\n');
+    index = source.indexOf(contents);
+  }
   if (index === -1) return null;
   if (source.indexOf(contents, index + 1) !== -1) return null;
   const lines = source.slice(0, index).split('\n');

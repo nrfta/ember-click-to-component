@@ -190,14 +190,32 @@ describe('template transform in template-tag files', () => {
     expect(out).toContain(`<div data-ctc-source="${hbsFile}:2:3"`);
   });
 
-  it('reports file lines/columns for a CRLF template-tag file', () => {
+  // JS template literals normalise CRLF to LF, so for a CRLF file on disk the
+  // pipeline hands over LF-only contents.
+  it('reports file lines/columns for a CRLF file given LF-normalised contents', () => {
     const crlfFile = join(dir, 'crlf.gjs');
     writeFileSync(crlfFile, GJS_SOURCE.replace(/\n/g, '\r\n'));
     const out = compileBlock(
-      '<section>\r\n      <p>hi</p>\r\n    </section>',
+      '<section>\n      <p>hi</p>\n    </section>',
       crlfFile,
     );
     expect(out).toContain(`<section data-ctc-source="${crlfFile}:5:5"`);
     expect(out).toContain(`<p data-ctc-source="${crlfFile}:6:7"`);
+  });
+
+  it('does not annotate ambiguous template text in a CRLF file', () => {
+    const crlfDup = join(dir, 'crlf-dup.gjs');
+    writeFileSync(
+      crlfDup,
+      [
+        'export const A = <template><i>a</i>',
+        '<i>b</i></template>;',
+        'export const B = <template><i>a</i>',
+        '<i>b</i></template>;',
+        '',
+      ].join('\r\n'),
+    );
+    const out = compileBlock('<i>a</i>\n<i>b</i>', crlfDup);
+    expect(out).toBe('<i>a</i>\n<i>b</i>');
   });
 });

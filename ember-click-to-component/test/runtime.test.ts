@@ -180,3 +180,25 @@ describe('teardown', () => {
     expect(event.defaultPrevented).toBe(false);
   });
 });
+
+describe('startClickToComponent called twice', () => {
+  it('replaces the previous instance', () => {
+    const open = vi.fn();
+    startClickToComponent({ open });
+    stop = startClickToComponent({ open });
+    altClick(document.getElementById('outer')!);
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll('style[data-ctc]')).toHaveLength(1);
+  });
+
+  it('a stale teardown does not affect the current instance', () => {
+    const open = vi.fn();
+    const first = startClickToComponent({ open });
+    stop = startClickToComponent({ open });
+    first();
+    altClick(document.getElementById('outer')!);
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll('style[data-ctc]')).toHaveLength(1);
+  });
+});
+

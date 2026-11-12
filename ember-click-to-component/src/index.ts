@@ -18,17 +18,21 @@ const HOVER_ATTR = 'data-ctc-hover';
 
 const STYLESHEET = [
   `[${HOVER_ATTR}]{outline:1px solid #e0457b!important;outline-offset:-1px}`,
-  `.${MENU_CLASS}{position:fixed;z-index:2147483647;min-width:200px;padding:4px;background:#fff;color:#222;border:1px solid #ccc;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font:12px/1.4 system-ui,sans-serif}`,
+  `.${MENU_CLASS}{position:fixed;z-index:2147483647;min-width:200px;padding:4px;background:#fff;color:#222;border:1px solid #ccc;border-radius:6px;max-height:calc(100vh - 16px);overflow:auto;box-shadow:0 4px 16px rgba(0,0,0,.2);font:12px/1.4 system-ui,sans-serif}`,
   `.${MENU_CLASS} [role=menuitem]{padding:4px 8px;border-radius:4px;cursor:pointer;white-space:nowrap}`,
   `.${MENU_CLASS} .ctc-active{background:#e0457b;color:#fff}`,
   `.${MENU_CLASS} .ctc-tag{opacity:.7;margin-left:6px}`,
 ].join('');
+
+// The running instance's teardown, so a second start replaces the first.
+let currentTeardown: (() => void) | null = null;
 
 export function startClickToComponent(
   options: ClickToComponentOptions = {},
 ): () => void {
   const editor: Editor = options.editor ?? 'vscode';
   assertEditor(editor);
+  currentTeardown?.();
   const attribute = options.attribute ?? DEFAULT_ATTRIBUTE;
   const open =
     options.open ??
@@ -51,7 +55,9 @@ export function startClickToComponent(
   }
 
   function updateHover() {
-    const next = altHeld ? (findSource(lastTarget, attribute)?.element ?? null) : null;
+    const next = altHeld
+      ? (findSource(lastTarget, attribute)?.element ?? null)
+      : null;
     if (next === hovered) return;
     clearHover();
     if (next) {
@@ -111,7 +117,11 @@ export function startClickToComponent(
     target.addEventListener(type, fn, capture);
   }
 
-  return () => {
+  let stopped = false;
+  const teardown = () => {
+    if (stopped) return;
+    stopped = true;
+    if (currentTeardown === teardown) currentTeardown = null;
     for (const [target, type, fn, capture] of listeners) {
       target.removeEventListener(type, fn, capture);
     }
@@ -120,4 +130,6 @@ export function startClickToComponent(
     document.documentElement.classList.remove(ROOT_CLASS);
     clearHover();
   };
+  currentTeardown = teardown;
+  return teardown;
 }

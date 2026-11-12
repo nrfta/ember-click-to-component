@@ -174,4 +174,77 @@ describe('Alt+Right-click menu', () => {
     expect(onOpen).not.toHaveBeenCalled();
     expect(menus()).toHaveLength(0);
   });
+
+  it('shows only the file name of a Windows path', () => {
+    const el = document.createElement('div');
+    const close = showMenu(
+      [{ element: el, location: { path: 'C:\\proj\\a.gjs', line: 1, column: 2 } }],
+      { x: 0, y: 0 },
+      vi.fn(),
+    );
+    expect(rows()[0]!.textContent).toMatch(/^a\.gjs:1:2 /);
+    close();
+  });
+
+  describe('viewport', () => {
+    const original = { width: window.innerWidth, height: window.innerHeight };
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: original.width });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: original.height });
+      delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    });
+
+    it('clamps a menu opened near the bottom-right inside the viewport', () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 500 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 400 });
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        x: 0, y: 0, left: 0, top: 0, right: 200, bottom: 100, width: 200, height: 100,
+        toJSON: () => ({}),
+      } as DOMRect);
+      const close = showMenu(
+        [{ element: document.getElementById('card')!, location: { path: '/p/a.gjs', line: 1, column: 1 } }],
+        { x: 480, y: 390 },
+        vi.fn(),
+      );
+      const menu = document.querySelector<HTMLElement>('.ctc-menu')!;
+      // 500 - 200 - 8 and 400 - 100 - 8
+      expect(menu.style.left).toBe('292px');
+      expect(menu.style.top).toBe('292px');
+      close();
+    });
+
+    it('keeps an 8px margin when the menu is larger than the viewport', () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 100 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 });
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        x: 0, y: 0, left: 0, top: 0, right: 300, bottom: 300, width: 300, height: 300,
+        toJSON: () => ({}),
+      } as DOMRect);
+      const close = showMenu(
+        [{ element: document.getElementById('card')!, location: { path: '/p/a.gjs', line: 1, column: 1 } }],
+        { x: 50, y: 50 },
+        vi.fn(),
+      );
+      const menu = document.querySelector<HTMLElement>('.ctc-menu')!;
+      expect(menu.style.left).toBe('8px');
+      expect(menu.style.top).toBe('8px');
+      close();
+    });
+
+    it('scrolls the active row into view on arrow navigation', () => {
+      const scrollIntoView = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoView;
+      start();
+      contextMenu(document.getElementById('inner')!);
+      scrollIntoView.mockClear();
+      key('ArrowDown');
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(scrollIntoView.mock.contexts[0]).toBe(rows()[1]);
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+      key('ArrowUp');
+      expect(scrollIntoView.mock.contexts[1]).toBe(rows()[0]);
+    });
+  });
 });

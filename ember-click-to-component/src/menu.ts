@@ -13,7 +13,7 @@ function label(element: Element): string {
 }
 
 function basename(path: string): string {
-  return path.slice(path.lastIndexOf('/') + 1);
+  return path.split(/[\\/]/).pop() ?? path;
 }
 
 export function showMenu(
@@ -50,14 +50,23 @@ export function showMenu(
     items.forEach((row, i) => row.classList.toggle(ACTIVE_CLASS, i === active));
   }
 
+  function move(delta: number) {
+    setActive(active + delta);
+    const row = items[active];
+    // jsdom has no scrollIntoView.
+    if (row && typeof row.scrollIntoView === 'function') {
+      row.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
   function choose(entry: SourceEntry) {
     close();
     onOpen(entry);
   }
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'ArrowDown') setActive(active + 1);
-    else if (event.key === 'ArrowUp') setActive(active - 1);
+    if (event.key === 'ArrowDown') move(1);
+    else if (event.key === 'ArrowUp') move(-1);
     else if (event.key === 'Enter') choose(entries[active]!);
     else if (event.key === 'Escape') close();
     else return;
@@ -77,6 +86,13 @@ export function showMenu(
 
   setActive(0);
   document.body.appendChild(root);
+  // Keep the menu inside the viewport (8px margin); the CSS caps its height.
+  const MARGIN = 8;
+  const rect = root.getBoundingClientRect();
+  const maxLeft = window.innerWidth - rect.width - MARGIN;
+  const maxTop = window.innerHeight - rect.height - MARGIN;
+  root.style.left = `${Math.max(MARGIN, Math.min(position.x, maxLeft))}px`;
+  root.style.top = `${Math.max(MARGIN, Math.min(position.y, maxTop))}px`;
   document.addEventListener('keydown', onKeyDown, true);
   document.addEventListener('click', onOutsideClick, true);
   closeCurrent = close;
