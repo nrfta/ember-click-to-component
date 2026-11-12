@@ -18,8 +18,22 @@ function* files(dir) {
   }
 }
 
+function* distFiles() {
+  try {
+    yield* files(dist);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+}
+
 let offenders = 0;
-for (const file of files(dist)) {
+let scanned = 0;
+let jsAssets = 0;
+let indexHtml = false;
+for (const file of distFiles()) {
+  scanned++;
+  if (file.endsWith('.js')) jsAssets++;
+  if (file === join(dist, 'index.html')) indexHtml = true;
   const text = readFileSync(file, 'utf8');
   const found = MARKERS.filter((marker) => text.includes(marker));
   if (found.length > 0) {
@@ -28,7 +42,13 @@ for (const file of files(dist)) {
   }
 }
 
-if (offenders > 0) {
+if (scanned === 0 || jsAssets === 0 || !indexHtml) {
+  // An empty or partial dist/ would pass the marker scan vacuously.
+  console.error(
+    `check-prod-bundle: dist/ does not look like a build (${scanned} file(s), ${jsAssets} .js asset(s), index.html ${indexHtml ? 'found' : 'missing'}). Run the production build first.`,
+  );
+  process.exitCode = 1;
+} else if (offenders > 0) {
   console.error(
     `check-prod-bundle: ${offenders} file(s) in dist/ leak click-to-component.`,
   );

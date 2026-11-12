@@ -84,6 +84,10 @@ export default defineConfig(({ mode }) => {
 });
 ```
 
+With this, every Vite mode other than `production` (for example
+`--mode staging`) enables the annotations, and an `EMBER_ENV` you export
+yourself wins over the mode.
+
 ### 2. Start the runtime (development only)
 
 In `app/app.ts` (or `app/app.js`), start the runtime behind
@@ -140,10 +144,12 @@ An element that already has the attribute is not annotated again.
 - **Editor URL handler:** opening relies on your editor having registered its
   URL scheme (`vscode://`, `vscode-insiders://`, `cursor://`). If it is not
   registered, the browser silently does nothing; the addon cannot detect this.
-- **Template-tag files:** for `.gjs`/`.gts` the transform finds the
-  `<template>` contents in the file on disk to report file lines and columns.
-  If the same template text appears more than once in a file, the first
-  occurrence is reported.
+- **Template-tag files:** for `.gjs`/`.gts` (and inline templates in
+  JS/TS) the compiler only sees the `<template>` contents, so the transform
+  looks that text up in the file on disk to report file lines and columns. If
+  the text cannot be found exactly once in the file (for example, two
+  identical `<template>` blocks), that template's elements are not annotated
+  rather than pointing at a possibly wrong location.
 
 ## Contributing
 

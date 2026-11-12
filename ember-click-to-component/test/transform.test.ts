@@ -158,14 +158,46 @@ describe('template transform in template-tag files', () => {
     expect(out).toContain(`<span data-ctc-source="${gjsFile}:11:32"`);
   });
 
-  it('falls back to template-relative locations when the block is not in the file', () => {
+  it('does not annotate when the block is not in the file', () => {
     const out = compileBlock('<div></div>');
-    expect(out).toContain(`<div data-ctc-source="${gjsFile}:1:1"`);
+    expect(out).toBe('<div></div>');
   });
 
-  it('falls back to template-relative locations when the file is unreadable', () => {
+  it('does not annotate when the file is unreadable', () => {
     const missing = join(dir, 'missing.gjs');
     const out = compileBlock('<span>x</span>', missing);
-    expect(out).toContain(`<span data-ctc-source="${missing}:1:1"`);
+    expect(out).toBe('<span>x</span>');
+  });
+
+  it('does not annotate when the template text occurs more than once', () => {
+    const dupFile = join(dir, 'dup.gjs');
+    writeFileSync(
+      dupFile,
+      [
+        'export const A = <template><b>same</b></template>;',
+        'export const B = <template><b>same</b></template>;',
+        '',
+      ].join('\n'),
+    );
+    const out = compileBlock('<b>same</b>', dupFile);
+    expect(out).toBe('<b>same</b>');
+  });
+
+  it('annotates .hbs templates with their own locations without reading the file', () => {
+    // This .hbs file does not exist: no read is needed, the template is the file.
+    const hbsFile = join(dir, 'not-on-disk.hbs');
+    const out = compileBlock('\n  <div></div>', hbsFile);
+    expect(out).toContain(`<div data-ctc-source="${hbsFile}:2:3"`);
+  });
+
+  it('reports file lines/columns for a CRLF template-tag file', () => {
+    const crlfFile = join(dir, 'crlf.gjs');
+    writeFileSync(crlfFile, GJS_SOURCE.replace(/\n/g, '\r\n'));
+    const out = compileBlock(
+      '<section>\r\n      <p>hi</p>\r\n    </section>',
+      crlfFile,
+    );
+    expect(out).toContain(`<section data-ctc-source="${crlfFile}:5:5"`);
+    expect(out).toContain(`<p data-ctc-source="${crlfFile}:6:7"`);
   });
 });

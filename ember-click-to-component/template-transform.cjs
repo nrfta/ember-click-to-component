@@ -16,14 +16,16 @@ function isPlainElement(tag) {
 }
 
 // Where the template text starts inside the file, as a 0-based line/column
-// offset. Glimmer locations are relative to the template string it was given:
-// for an .hbs file that is the whole file (no offset), but for template-tag
-// files (.gjs/.gts) content-tag hands over only the (trimmed) text between
-// <template> and </template>, and its JS output does not keep the original
-// line numbers either. So find that text in the file on disk. Returns null
-// (no offset) when the file cannot be read or the text is not found in it. If
-// the same template text occurs more than once, the first occurrence wins.
+// offset, or null when it cannot be known. Glimmer locations are relative to
+// the template string it was given. For an .hbs file that string is the whole
+// file, so the offset is 0:0 and the file is not read. For template-tag files
+// (.gjs/.gts) and inline templates, content-tag/babel hand over only the
+// template text (trimmed of surrounding whitespace by content-tag), and the JS
+// they emit does not keep the original line numbers. So find that text in the
+// file on disk. If the file cannot be read, or the text does not occur in it
+// exactly once, return null: no location beats a wrong one.
 function templateOffset(filename, contents) {
+  if (filename.endsWith('.hbs')) return { line: 0, column: 0 };
   if (typeof contents !== 'string' || contents.length === 0) return null;
   let source;
   try {
@@ -32,7 +34,8 @@ function templateOffset(filename, contents) {
     return null;
   }
   const index = source.indexOf(contents);
-  if (index <= 0) return null;
+  if (index === -1) return null;
+  if (source.indexOf(contents, index + 1) !== -1) return null;
   const lines = source.slice(0, index).split('\n');
   return { line: lines.length - 1, column: lines[lines.length - 1].length };
 }
@@ -62,14 +65,14 @@ module.exports = function clickToComponentTransform(options) {
           if (offset === undefined) {
             offset = templateOffset(filename, env.contents);
           }
-          let line = start.line;
-          let column = start.column;
-          if (offset) {
-            // Only the template's first line shares a file line with the text
-            // before it, so only that line gets the column offset.
-            if (line === 1) column += offset.column;
-            line += offset.line;
-          }
+          // Location unknown: leave this template's elements unannotated.
+          if (!offset) return;
+
+          // Only the template's first line shares a file line with the text
+          // before it, so only that line gets the column offset.
+          const line = start.line + offset.line;
+          const column =
+            start.line === 1 ? start.column + offset.column : start.column;
 
           const { builders: b } = env.syntax;
           node.attributes.unshift(
