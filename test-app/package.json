@@ -16,6 +16,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "check:prod": "vite build && node scripts/check-prod-bundle.mjs",
     "format": "prettier . --cache --write",
     "lint": "concurrently \"pnpm:lint:*(!fix)\" --names \"lint:\" --prefixColors auto",
     "lint:css": "stylelint \"**/*.css\"",

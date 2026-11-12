@@ -6,9 +6,11 @@ import loadInitializers from 'ember-load-initializers';
 import config from 'test-app/config/environment';
 import { importSync, isDevelopingApp, macroCondition } from '@embroider/macros';
 import setupInspector from '@embroider/legacy-inspector-support/ember-source-4.12';
+import { startClickToComponent } from 'ember-click-to-component';
 
 if (macroCondition(isDevelopingApp())) {
   importSync('./deprecation-workflow');
+  startClickToComponent();
 }
 
 export default class App extends Application {
