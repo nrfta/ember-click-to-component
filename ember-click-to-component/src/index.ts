@@ -1,6 +1,7 @@
 import { assertEditor, buildEditorUrl } from './editors.ts';
 import type { Editor } from './editors.ts';
-import { DEFAULT_ATTRIBUTE, findSource } from './find-source.ts';
+import { DEFAULT_ATTRIBUTE, collectChain, findSource } from './find-source.ts';
+import { MENU_CLASS, showMenu } from './menu.ts';
 
 export type { Editor, SourceLocation } from './editors.ts';
 export { collectChain, findSource } from './find-source.ts';
@@ -15,7 +16,13 @@ export interface ClickToComponentOptions {
 const ROOT_CLASS = 'ctc-alt-active';
 const HOVER_ATTR = 'data-ctc-hover';
 
-const STYLESHEET = `[${HOVER_ATTR}]{outline:1px solid #e0457b!important;outline-offset:-1px}`;
+const STYLESHEET = [
+  `[${HOVER_ATTR}]{outline:1px solid #e0457b!important;outline-offset:-1px}`,
+  `.${MENU_CLASS}{position:fixed;z-index:2147483647;min-width:200px;padding:4px;background:#fff;color:#222;border:1px solid #ccc;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);font:12px/1.4 system-ui,sans-serif}`,
+  `.${MENU_CLASS} [role=menuitem]{padding:4px 8px;border-radius:4px;cursor:pointer;white-space:nowrap}`,
+  `.${MENU_CLASS} .ctc-active{background:#e0457b;color:#fff}`,
+  `.${MENU_CLASS} .ctc-tag{opacity:.7;margin-left:6px}`,
+].join('');
 
 export function startClickToComponent(
   options: ClickToComponentOptions = {},
@@ -67,6 +74,18 @@ export function startClickToComponent(
     event.stopPropagation();
     open(buildEditorUrl(editor, entry.location));
   };
+  let closeMenu: (() => void) | null = null;
+  const onContextMenu = (event: MouseEvent) => {
+    if (!event.altKey) return;
+    const entries = collectChain(event.target, attribute);
+    if (entries.length === 0) return;
+    event.preventDefault();
+    closeMenu = showMenu(
+      entries,
+      { x: event.clientX, y: event.clientY },
+      (entry) => open(buildEditorUrl(editor, entry.location)),
+    );
+  };
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Alt') setAlt(true);
   };
@@ -82,6 +101,7 @@ export function startClickToComponent(
 
   const listeners: Array<[EventTarget, string, EventListener, boolean]> = [
     [document, 'click', onClick as EventListener, true],
+    [document, 'contextmenu', onContextMenu as EventListener, true],
     [document, 'keydown', onKeyDown as EventListener, true],
     [document, 'keyup', onKeyUp as EventListener, true],
     [document, 'mousemove', onMouseMove as EventListener, true],
@@ -95,6 +115,7 @@ export function startClickToComponent(
     for (const [target, type, fn, capture] of listeners) {
       target.removeEventListener(type, fn, capture);
     }
+    closeMenu?.();
     style.remove();
     document.documentElement.classList.remove(ROOT_CLASS);
     clearHover();
