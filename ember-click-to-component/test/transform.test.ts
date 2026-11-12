@@ -1,11 +1,16 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { preprocess, print } from '@glimmer/syntax';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const clickToComponentTransform = require('../template-transform.cjs') as (
-  options?: { enabled?: boolean; attribute?: string },
-) => (env: { filename?: string }) => unknown;
+const clickToComponentTransform =
+  require('../template-transform.cjs') as (options?: {
+    enabled?: boolean;
+    attribute?: string;
+  }) => (env: { filename?: string; contents?: string }) => unknown;
 
 const FILE = '/proj/app/a.hbs';
 
@@ -86,5 +91,81 @@ describe('template transform', () => {
     expect(out).toBe(
       `<div data-ctc-source="${FILE}:1:1" ...attributes {{on "click" this.go}}></div>`,
     );
+  });
+});
+
+// Template-tag files (.gjs/.gts): content-tag hands
+// babel-plugin-ember-template-compilation only the (trimmed) text between
+// <template> and </template>, so Glimmer locations are relative to that
+// block. The transform must report lines/columns of the real file.
+const GJS_SOURCE = [
+  "import Component from '@glimmer/component';", // 1
+  '', // 2
+  'export default class Greeting extends Component {', // 3
+  '  <template>', // 4
+  '    <section>', // 5: <section> at column 5
+  '      <p>hi</p>', // 6: <p> at column 7
+  '    </section>', // 7
+  '  </template>', // 8
+  '}', // 9
+  '', // 10
+  'export const Other = <template><span>x</span></template>;', // 11: <span> at column 32
+  '',
+].join('\n');
+
+describe('template transform in template-tag files', () => {
+  let dir: string;
+  let gjsFile: string;
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), 'ctc-transform-'));
+    gjsFile = join(dir, 'greeting.gjs');
+    writeFileSync(gjsFile, GJS_SOURCE);
+  });
+
+  afterAll(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  function compileBlock(contents: string, filename = gjsFile): string {
+    const plugin = clickToComponentTransform();
+    const ast = preprocess(contents, {
+      mode: 'codemod',
+      meta: { moduleName: filename },
+      plugins: {
+        ast: [(env: object) => plugin({ ...env, filename, contents }) as never],
+      },
+    } as never);
+    return print(ast);
+  }
+
+  it('reports file lines/columns for a trimmed class-body template', () => {
+    const out = compileBlock('<section>\n      <p>hi</p>\n    </section>');
+    expect(out).toContain(`<section data-ctc-source="${gjsFile}:5:5"`);
+    expect(out).toContain(`<p data-ctc-source="${gjsFile}:6:7"`);
+  });
+
+  it('reports file lines/columns for an untrimmed template block', () => {
+    const out = compileBlock(
+      '\n    <section>\n      <p>hi</p>\n    </section>\n  ',
+    );
+    expect(out).toContain(`<section data-ctc-source="${gjsFile}:5:5"`);
+    expect(out).toContain(`<p data-ctc-source="${gjsFile}:6:7"`);
+  });
+
+  it('offsets the column of a template that starts mid-line', () => {
+    const out = compileBlock('<span>x</span>');
+    expect(out).toContain(`<span data-ctc-source="${gjsFile}:11:32"`);
+  });
+
+  it('falls back to template-relative locations when the block is not in the file', () => {
+    const out = compileBlock('<div></div>');
+    expect(out).toContain(`<div data-ctc-source="${gjsFile}:1:1"`);
+  });
+
+  it('falls back to template-relative locations when the file is unreadable', () => {
+    const missing = join(dir, 'missing.gjs');
+    const out = compileBlock('<span>x</span>', missing);
+    expect(out).toContain(`<span data-ctc-source="${missing}:1:1"`);
   });
 });
