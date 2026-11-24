@@ -203,6 +203,47 @@ describe('template transform in template-tag files', () => {
     expect(out).toContain(`<p data-ctc-source="${crlfFile}:6:7"`);
   });
 
+  // content-tag strips the template's common indentation from every line
+  // after the first, so the text it hands over is not a substring of the file.
+  it('reports file lines/columns for a template with its common indent stripped', () => {
+    const indentedFile = join(dir, 'indented.gjs');
+    writeFileSync(
+      indentedFile,
+      [
+        'export default class A {',
+        '  <template>',
+        '    <section>',
+        '      <p>hi</p>',
+        '',
+        '      <b>x</b>',
+        '    </section>',
+        '  </template>',
+        '}',
+        '',
+      ].join('\n'),
+    );
+    const out = compileBlock(
+      '<section>\n  <p>hi</p>\n\n  <b>x</b>\n</section>',
+      indentedFile,
+    );
+    expect(out).toContain(`<section data-ctc-source="${indentedFile}:3:5"`);
+    expect(out).toContain(`<p data-ctc-source="${indentedFile}:4:7"`);
+    expect(out).toContain(`<b data-ctc-source="${indentedFile}:6:7"`);
+  });
+
+  it('does not annotate ambiguous indent-stripped template text', () => {
+    const dupFile = join(dir, 'indented-dup.gjs');
+    const block = [
+      '  <template>',
+      '    <i>a</i>',
+      '    <i>b</i>',
+      '  </template>',
+    ];
+    writeFileSync(dupFile, [...block, ...block, ''].join('\n'));
+    const out = compileBlock('<i>a</i>\n<i>b</i>', dupFile);
+    expect(out).toBe('<i>a</i>\n<i>b</i>');
+  });
+
   it('does not annotate ambiguous template text in a CRLF file', () => {
     const crlfDup = join(dir, 'crlf-dup.gjs');
     writeFileSync(

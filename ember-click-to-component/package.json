@@ -1,13 +1,28 @@
 {
   "name": "ember-click-to-component",
   "version": "0.0.0",
-  "description": "The default blueprint for Embroider v2 addons.",
+  "description": "Option+Click any element in an Ember app's development build to open the template that rendered it in your editor.",
   "keywords": [
-    "ember-addon"
+    "ember-addon",
+    "ember",
+    "embroider",
+    "vite",
+    "click-to-component",
+    "developer-tools",
+    "devtools",
+    "template",
+    "vscode",
+    "cursor"
   ],
-  "repository": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adamschnaare/ember-click-to-component.git",
+    "directory": "ember-click-to-component"
+  },
+  "homepage": "https://github.com/adamschnaare/ember-click-to-component#readme",
+  "bugs": "https://github.com/adamschnaare/ember-click-to-component/issues",
   "license": "MIT",
-  "author": "",
+  "author": "Adam Schnaare",
   "exports": {
     ".": {
       "types": "./declarations/index.d.ts",
@@ -50,10 +65,10 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@embroider/addon-shim": "^1.8.9",
-    "decorator-transforms": "^2.2.2"
+    "@embroider/addon-shim": "^1.8.9"
   },
   "devDependencies": {
+    "decorator-transforms": "^2.2.2",
     "@babel/core": "^7.25.2",
     "@babel/eslint-parser": "^7.25.1",
     "@babel/plugin-transform-typescript": "^7.25.2",

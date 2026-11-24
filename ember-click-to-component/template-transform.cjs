@@ -25,7 +25,7 @@ function isPlainElement(tag) {
 // file on disk. If the file cannot be read, or the text does not occur in it
 // exactly once, return null: no location beats a wrong one.
 function templateOffset(filename, contents) {
-  if (filename.endsWith('.hbs')) return { line: 0, column: 0 };
+  if (filename.endsWith('.hbs')) return { line: 0, column: 0, indent: 0 };
   if (typeof contents !== 'string' || contents.length === 0) return null;
   let source;
   try {
@@ -33,19 +33,52 @@ function templateOffset(filename, contents) {
   } catch {
     return null;
   }
-  let index = source.indexOf(contents);
-  if (index === -1 && source.includes('\r\n')) {
+  let found = findUnique(source, contents);
+  if (found === undefined && source.includes('\r\n')) {
     // JS template literals normalise CRLF to LF, so a template from a CRLF
     // file arrives LF-only. Search the LF-normalised file instead; lines are
     // counted by LF and the stripped CRs sat only at line ends, so line and
     // column stay correct.
     source = source.replace(/\r\n/g, '\n');
-    index = source.indexOf(contents);
+    found = findUnique(source, contents);
   }
-  if (index === -1) return null;
-  if (source.indexOf(contents, index + 1) !== -1) return null;
-  const lines = source.slice(0, index).split('\n');
-  return { line: lines.length - 1, column: lines[lines.length - 1].length };
+  if (!found) return null;
+  const lines = source.slice(0, found.index).split('\n');
+  return {
+    line: lines.length - 1,
+    column: lines[lines.length - 1].length,
+    indent: found.indent,
+  };
+}
+
+// Finds `contents` in `source`: exactly one match gives { index, indent },
+// no match gives undefined, several matches give null. The text may be an
+// exact substring (indent 0) or, as content-tag hands it over, with the
+// template's common indentation stripped from every line after the first.
+// `indent` is how many columns that stripping removed.
+function findUnique(source, contents) {
+  const exact = source.indexOf(contents);
+  if (exact !== -1) {
+    return source.indexOf(contents, exact + 1) === -1
+      ? { index: exact, indent: 0 }
+      : null;
+  }
+  const lines = contents.split('\n');
+  if (lines.length === 1) return undefined;
+  const pattern = new RegExp(
+    lines
+      .map((line) => line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('\\n[ \\t]*'),
+    'g',
+  );
+  const first = pattern.exec(source);
+  if (!first) return undefined;
+  pattern.lastIndex = first.index + 1;
+  if (pattern.exec(source)) return null;
+  const matched = first[0].split('\n');
+  const at = lines.findIndex((line, i) => i > 0 && line.length > 0);
+  const indent = at === -1 ? 0 : matched[at].length - lines[at].length;
+  return { index: first.index, indent };
 }
 
 module.exports = function clickToComponentTransform(options) {
@@ -77,10 +110,13 @@ module.exports = function clickToComponentTransform(options) {
           if (!offset) return;
 
           // Only the template's first line shares a file line with the text
-          // before it, so only that line gets the column offset.
+          // before it, so only that line gets the column offset. Every later
+          // line gets back the indentation that was stripped from it.
           const line = start.line + offset.line;
           const column =
-            start.line === 1 ? start.column + offset.column : start.column;
+            start.line === 1
+              ? start.column + offset.column
+              : start.column + offset.indent;
 
           const { builders: b } = env.syntax;
           node.attributes.unshift(

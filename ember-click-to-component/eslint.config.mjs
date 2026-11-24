@@ -28,8 +28,10 @@ const parserOptions = {
       ecmaVersion: 'latest',
     },
     ts: {
-      projectService: true,
-      project: true,
+      // The tests are not part of tsconfig.json (its rootDir is src/ so the
+      // published declarations mirror dist/), so lint them with the default
+      // project instead.
+      projectService: { allowDefaultProject: ['test/*.ts'] },
       tsconfigRootDir: import.meta.dirname,
     },
   },
@@ -78,6 +80,21 @@ export default ts.config(
       parserOptions: parserOptions.esm.ts,
     },
     extends: [...ts.configs.recommendedTypeChecked, ember.configs.gts],
+  },
+  {
+    // Tests are linted with the default project (see parserOptions), which
+    // cannot resolve every dependency's types, so the rules that depend on
+    // full type information would only produce noise there.
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+    },
   },
   {
     files: ['src/**/*'],

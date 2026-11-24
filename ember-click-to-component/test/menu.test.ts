@@ -20,7 +20,9 @@ function contextMenu(target: Element, altKey = true): MouseEvent {
 }
 
 function key(name: string) {
-  document.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true }));
+  document.dispatchEvent(
+    new KeyboardEvent('keydown', { key: name, bubbles: true }),
+  );
 }
 
 function menus() {
@@ -100,7 +102,8 @@ describe('Alt+Right-click menu', () => {
   it('moves the active row with ArrowDown/ArrowUp, wrapping, and Enter opens it', () => {
     const open = start();
     contextMenu(document.getElementById('inner')!);
-    const active = () => rows().findIndex((r) => r.classList.contains('ctc-active'));
+    const active = () =>
+      rows().findIndex((r) => r.classList.contains('ctc-active'));
     expect(active()).toBe(0);
     key('ArrowDown');
     expect(active()).toBe(1);
@@ -133,7 +136,9 @@ describe('Alt+Right-click menu', () => {
   it('clicking outside closes the menu without opening', () => {
     const open = start();
     contextMenu(document.getElementById('inner')!);
-    document.getElementById('plain')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document
+      .getElementById('plain')!
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(menus()).toHaveLength(0);
     expect(open).not.toHaveBeenCalled();
   });
@@ -178,7 +183,12 @@ describe('Alt+Right-click menu', () => {
   it('shows only the file name of a Windows path', () => {
     const el = document.createElement('div');
     const close = showMenu(
-      [{ element: el, location: { path: 'C:\\proj\\a.gjs', line: 1, column: 2 } }],
+      [
+        {
+          element: el,
+          location: { path: 'C:\\proj\\a.gjs', line: 1, column: 2 },
+        },
+      ],
       { x: 0, y: 0 },
       vi.fn(),
     );
@@ -191,20 +201,44 @@ describe('Alt+Right-click menu', () => {
 
     afterEach(() => {
       vi.restoreAllMocks();
-      Object.defineProperty(window, 'innerWidth', { configurable: true, value: original.width });
-      Object.defineProperty(window, 'innerHeight', { configurable: true, value: original.height });
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: original.width,
+      });
+      Object.defineProperty(window, 'innerHeight', {
+        configurable: true,
+        value: original.height,
+      });
       delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
     });
 
     it('clamps a menu opened near the bottom-right inside the viewport', () => {
-      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 500 });
-      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 400 });
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 500,
+      });
+      Object.defineProperty(window, 'innerHeight', {
+        configurable: true,
+        value: 400,
+      });
       vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
-        x: 0, y: 0, left: 0, top: 0, right: 200, bottom: 100, width: 200, height: 100,
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 200,
+        bottom: 100,
+        width: 200,
+        height: 100,
         toJSON: () => ({}),
       } as DOMRect);
       const close = showMenu(
-        [{ element: document.getElementById('card')!, location: { path: '/p/a.gjs', line: 1, column: 1 } }],
+        [
+          {
+            element: document.getElementById('card')!,
+            location: { path: '/p/a.gjs', line: 1, column: 1 },
+          },
+        ],
         { x: 480, y: 390 },
         vi.fn(),
       );
@@ -216,14 +250,32 @@ describe('Alt+Right-click menu', () => {
     });
 
     it('keeps an 8px margin when the menu is larger than the viewport', () => {
-      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 100 });
-      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 100 });
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 100,
+      });
+      Object.defineProperty(window, 'innerHeight', {
+        configurable: true,
+        value: 100,
+      });
       vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
-        x: 0, y: 0, left: 0, top: 0, right: 300, bottom: 300, width: 300, height: 300,
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 300,
+        bottom: 300,
+        width: 300,
+        height: 300,
         toJSON: () => ({}),
       } as DOMRect);
       const close = showMenu(
-        [{ element: document.getElementById('card')!, location: { path: '/p/a.gjs', line: 1, column: 1 } }],
+        [
+          {
+            element: document.getElementById('card')!,
+            location: { path: '/p/a.gjs', line: 1, column: 1 },
+          },
+        ],
         { x: 50, y: 50 },
         vi.fn(),
       );

@@ -128,18 +128,26 @@ describe('collectChain', () => {
 
 describe('Alt highlight', () => {
   const keydown = () =>
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt', altKey: true }));
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Alt', altKey: true }),
+    );
   const keyup = () =>
     document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Alt' }));
   const move = (el: Element) =>
-    el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, altKey: true }));
+    el.dispatchEvent(
+      new MouseEvent('mousemove', { bubbles: true, altKey: true }),
+    );
 
   it('toggles ctc-alt-active on keydown/keyup', () => {
     start();
     keydown();
-    expect(document.documentElement.classList.contains('ctc-alt-active')).toBe(true);
+    expect(document.documentElement.classList.contains('ctc-alt-active')).toBe(
+      true,
+    );
     keyup();
-    expect(document.documentElement.classList.contains('ctc-alt-active')).toBe(false);
+    expect(document.documentElement.classList.contains('ctc-alt-active')).toBe(
+      false,
+    );
   });
 
   it('window blur clears the class and hover marker', () => {
@@ -148,7 +156,9 @@ describe('Alt highlight', () => {
     move(document.getElementById('inner')!);
     expect(document.querySelector('[data-ctc-hover]')).not.toBeNull();
     window.dispatchEvent(new Event('blur'));
-    expect(document.documentElement.classList.contains('ctc-alt-active')).toBe(false);
+    expect(document.documentElement.classList.contains('ctc-alt-active')).toBe(
+      false,
+    );
     expect(document.querySelector('[data-ctc-hover]')).toBeNull();
   });
 
@@ -166,14 +176,20 @@ describe('teardown', () => {
   it('removes listeners, style, class and hover marker', () => {
     const open = start();
     expect(document.querySelectorAll('style[data-ctc]')).toHaveLength(1);
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt', altKey: true }));
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Alt', altKey: true }),
+    );
     document
       .getElementById('inner')!
-      .dispatchEvent(new MouseEvent('mousemove', { bubbles: true, altKey: true }));
+      .dispatchEvent(
+        new MouseEvent('mousemove', { bubbles: true, altKey: true }),
+      );
     stop!();
     stop = undefined;
     expect(document.querySelector('style[data-ctc]')).toBeNull();
-    expect(document.documentElement.classList.contains('ctc-alt-active')).toBe(false);
+    expect(document.documentElement.classList.contains('ctc-alt-active')).toBe(
+      false,
+    );
     expect(document.querySelector('[data-ctc-hover]')).toBeNull();
     const event = altClick(document.getElementById('outer')!);
     expect(open).not.toHaveBeenCalled();
@@ -201,4 +217,3 @@ describe('startClickToComponent called twice', () => {
     expect(document.querySelectorAll('style[data-ctc]')).toHaveLength(1);
   });
 });
-
