@@ -1,6 +1,6 @@
 {
   "name": "ember-click-to-component",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Option+Click any element in an Ember app's development build to open the template that rendered it in your editor.",
   "keywords": [
     "ember-addon",
