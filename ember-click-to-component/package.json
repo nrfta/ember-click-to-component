@@ -16,11 +16,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/adamschnaare/ember-click-to-component.git",
+    "url": "git+https://github.com/nrfta/ember-click-to-component.git",
     "directory": "ember-click-to-component"
   },
-  "homepage": "https://github.com/adamschnaare/ember-click-to-component#readme",
-  "bugs": "https://github.com/adamschnaare/ember-click-to-component/issues",
+  "homepage": "https://github.com/nrfta/ember-click-to-component#readme",
+  "bugs": "https://github.com/nrfta/ember-click-to-component/issues",
   "license": "MIT",
   "author": "Adam Schnaare",
   "exports": {
